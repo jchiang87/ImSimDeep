@@ -8,5 +8,5 @@
 # PATH, etc..
 
 inst_dir=$( cd $(dirname $BASH_SOURCE)/..; pwd -P )
-eups declare ImSimDeep -r ${inst_dir} -t ${USER}
-setup ImSimDeep -t ${USER}
+eups declare imsimdeep -r ${inst_dir} -t ${USER}
+setup imsimdeep -t ${USER}
