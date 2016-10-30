@@ -4,33 +4,31 @@ Compute apparent magnitudes for each object in a phosim instance catalog.
 """
 from __future__ import absolute_import, print_function
 import argparse
-import numpy as np
+import desc.imsim
 import desc.imsimdeep
 
 parser = argparse.ArgumentParser()
 parser.add_argument('instance_catalog', type=str,
                     help='The phosim instance catalog')
 parser.add_argument('outfile', type=str, help='The output filename')
-
+parser.add_argument('--numrows', type=int, default=None,
+                    help='Number of rows to read from the instance catalog')
 args = parser.parse_args()
 
-bands = 'ugrizy'
-band = 'r'  # default value
+commands, objs = desc.imsim.parsePhoSimInstanceFile(args.instance_catalog,
+                                                    numRows=args.numrows)
 
-observed_seds = desc.imsimdeep.ObservedSEDs()
+band = commands['bandpass']
+sed_names = [x[0] for x in objs.groupby('sedName').sedName.unique()]
 
 output = open(args.outfile, 'w')
 with open(args.instance_catalog) as inst_cat:
-    for line in inst_cat:
-        object_line = line.strip()
-        tokens = object_line.split()
-        if tokens[0] == 'filter':
-            band = bands[int(tokens[1])]
-        if tokens[0] != 'object':
-            continue
-        object_id, ra, dec = tokens[1:4]
-        sed = observed_seds.get_SED(object_line)
-        output.write('%s  %s  %s  %.8f\n' %
-                     (object_id, ra, dec, sed.calcMag(band)))
+    for sed_name in sed_names:
+        app_mag = desc.imsimdeep.ApparentMagnitude(sed_name)
+        my_objs = objs.query("sedName=='%s'" % sed_name)
+        for i in range(len(my_objs)):
+            row = my_objs.iloc[i]
+            output.write('%i  %.8f  %.8f  %.8f\n'
+                         % (row.objectID, row.ra, row.dec, app_mag(row, band)))
         output.flush()
 output.close()
