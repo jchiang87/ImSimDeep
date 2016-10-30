@@ -3,8 +3,10 @@
 ## Set-up and testing
 From bash
 ```
-$ source <ImSimDeep install directory>/setup/setup.sh
-$ nosetests <ImSimDeep install directory>
+$ cd <ImSimDeep install directory>
+$ source setup/setup.sh
+$ scons
+$ nosetests
 ```
 
 ## Demo

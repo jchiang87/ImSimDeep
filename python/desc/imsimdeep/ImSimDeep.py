@@ -16,18 +16,19 @@ class SED(object):
 
     Attributes
     ----------
-    sed_object : lsst.photUtils.Sed object
-        The underlying Sed object.
+    sed_instance : lsst.photUtils.Sed instance
+        The underlying Sed instance.
 
     bandpasses : dict
-        A dictionary of lsst.photUtils.Bandpass objects.
+        A dictionary of lsst.photUtils.Bandpass instances.
     """
-    def __init__(self, sed_object, magnorm, iA_v, iR_v, gA_v, gR_v, bandpasses):
+    def __init__(self, sed_instance, magnorm, iA_v, iR_v, gA_v, gR_v,
+                 bandpasses):
         """
         Parameters
         ----------
-        sed_object : lsst.photUtils.Sed object
-            The underlying Sed object.
+        sed_instance : lsst.photUtils.Sed instance
+            The underlying Sed instance.
 
         magnorm : float
 
@@ -40,9 +41,9 @@ class SED(object):
         gR_v : float
 
         bandpasses : dict
-            A dictionary of lsst.photUtils.Bandpass objects.
+            A dictionary of lsst.photUtils.Bandpass instances.
         """
-        self.sed_object = sed_object
+        self.sed_instance = sed_instance
         self.magnorm = magnorm
         self.iA_v = iA_v
         self.iR_v = iR_v
@@ -66,11 +67,11 @@ class SED(object):
         float
             The magnitude in the desired band.
         """
-        return self.sed_object.calcMag(self.bandpasses[band])
+        return self.sed_instance.calcMag(self.bandpasses[band])
 
     def __getattr__(self, attrname):
-        "Delegate access to all other attributes to underlying Sed object."
-        return getattr(self.sed_object, attrname)
+        "Delegate access to all other attributes to underlying Sed instance."
+        return getattr(self.sed_instance, attrname)
 
 class ObservedSEDs(object):
     """
@@ -82,7 +83,7 @@ class ObservedSEDs(object):
     ----------
     bps : dict
         Dictionary of LSST bandpasses.
-    control_bandpass : lsst.photUtils.Bandpass object
+    control_bandpass : lsst.photUtils.Bandpass instance
         The "imsim bandpass" which is used to set magnorm of an object's
         spectrum.
     """
@@ -112,8 +113,10 @@ class ObservedSEDs(object):
 
         Returns
         -------
-        lsst.photUtils.Sed object
-            This can be used to compute the
+        SED instance
+            SED is a thin wrapper class around the lsst.photUtils.Sed
+            class.  It can be used to compute the object's apparent
+            magnitude in a given band.
         """
         obj_tokens = object_line.strip().split()
 
