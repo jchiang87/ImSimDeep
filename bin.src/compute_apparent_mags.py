@@ -32,4 +32,5 @@ with open(args.instance_catalog) as inst_cat:
         sed = observed_seds.get_SED(object_line)
         output.write('%s  %s  %s  %.8f\n' %
                      (object_id, ra, dec, sed.calcMag(band)))
+        output.flush()
 output.close()
