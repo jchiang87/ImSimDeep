@@ -14,7 +14,7 @@ from lsst.sims.catUtils.exampleCatalogDefinitions.phoSimCatalogExamples import \
 
 __all__ = ['InstanceCatalogMaker']
 
-class InstanceCatlogMaker(object):
+class InstanceCatalogMaker(object):
     """
     Class for creating instance catalogs.
 
