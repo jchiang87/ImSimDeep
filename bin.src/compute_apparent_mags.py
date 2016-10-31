@@ -4,6 +4,8 @@ Compute apparent magnitudes for each object in a phosim instance catalog.
 """
 from __future__ import absolute_import, print_function
 import argparse
+import numpy as np
+import pandas as pd
 import desc.imsim
 import desc.imsimdeep
 
@@ -18,17 +20,26 @@ args = parser.parse_args()
 commands, objs = desc.imsim.parsePhoSimInstanceFile(args.instance_catalog,
                                                     numRows=args.numrows)
 
+
 band = commands['bandpass']
+columns = ('objectID', 'ra', 'dec', band)
+
 sed_names = [x[0] for x in objs.groupby('sedName').sedName.unique()]
 
-output = open(args.outfile, 'w')
+data_frames = []
 with open(args.instance_catalog) as inst_cat:
     for sed_name in sed_names:
         app_mag = desc.imsimdeep.ApparentMagnitude(sed_name)
         my_objs = objs.query("sedName=='%s'" % sed_name)
-        for i in range(len(my_objs)):
-            row = my_objs.iloc[i]
-            output.write('%i  %.8f  %.8f  %.8f\n'
-                         % (row.objectID, row.ra, row.dec, app_mag(row, band)))
-        output.flush()
-output.close()
+        nrows = len(my_objs)
+        mags = [app_mag(my_objs.iloc[i], band) for i in range(nrows)]
+        df = pd.DataFrame(np.zeros((len(my_objs), len(columns))),
+                          columns=columns)
+        df['objectID'] = pd.to_numeric(my_objs['objectID']).tolist()
+        df['ra'] = pd.to_numeric(my_objs['ra']).tolist()
+        df['dec'] = pd.to_numeric(my_objs['dec']).tolist()
+        df[band] = mags
+        data_frames.append(df)
+
+my_df = pd.concat(tuple(data_frames), ignore_index=True)
+my_df.to_pickle(args.outfile)
