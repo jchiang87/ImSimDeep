@@ -2,15 +2,16 @@
 Code to create instance catalogs via CatSim.
 """
 from __future__ import absolute_import, print_function
-import os
+import sys
 import logging
-from lsst.sims.catalogs.generation.db import CatalogDBObject
-from lsst.sims.catalogs.measures.instance import CompoundInstanceCatalog
-from lsst.sims.catUtils.baseCatalogModels import BaseCatalogConfig
-from lsst.sims.catUtils.baseCatalogModels import GalaxyTileCompoundObj
-from lsst.sims.catUtils.utils import ObservationMetaDataGenerator
-from lsst.sims.catUtils.exampleCatalogDefinitions.phoSimCatalogExamples import \
-        PhoSimCatalogPoint, PhoSimCatalogSersic2D, PhoSimCatalogZPoint
+import warnings
+with warnings.catch_warnings():
+    warnings.filterwarnings('ignore', 'Duplicate object type id', UserWarning)
+    warnings.filterwarnings('ignore', 'duplicate object identifie', UserWarning)
+    from lsst.sims.catalogs.db import CatalogDBObject
+    from lsst.sims.catUtils.utils import ObservationMetaDataGenerator
+    from lsst.sims.catUtils.exampleCatalogDefinitions.phoSimCatalogExamples \
+        import PhoSimCatalogPoint, PhoSimCatalogSersic2D
 
 __all__ = ['InstanceCatalogMaker']
 
@@ -89,30 +90,21 @@ class InstanceCatalogMaker(object):
                                                      boundLength=boundLength)[0]
         do_header = True
         for objid in self.star_objs:
-            self.logger.info("processing", objid)
-            try:
-                db_obj = CatalogDBObject.from_objid(objid, **db_config)
-                phosim_object = PhoSimCatalogPoint(db_obj, obs_metadata=obs_md)
-                if do_header:
-                    with open(outfile, 'w') as file_obj:
-                        phosim_object.write_header(file_obj)
-                    do_header = False
-                phosim_object.write_catalog(outfile, write_mode='a',
-                                            write_header=False,
-                                            chunk_size=20000)
-            except Exception as eObj:
-                self.logger.info(type(eObj))
-                self.logger.info(eObj.message)
+            self.logger.info("processing %s", objid)
+            db_obj = CatalogDBObject.from_objid(objid, **self.db_config)
+            phosim_object = PhoSimCatalogPoint(db_obj, obs_metadata=obs_md)
+            if do_header:
+                with open(outfile, 'w') as file_obj:
+                    phosim_object.write_header(file_obj)
+                do_header = False
+            phosim_object.write_catalog(outfile, write_mode='a',
+                                        write_header=False,
+                                        chunk_size=20000)
 
         for objid in self.gal_objs:
-            self.logger.info("processing", objid)
-            try:
-                db_obj = CatalogDBObject.from_objid(objid, **config)
-                phosim_object = PhoSimCatalogSersic2D(db_obj,
-                                                      obs_metadata=obs_md)
-                phosim_object.write_catalog(outfile, write_mode='a',
-                                            write_header=False,
-                                            chunk_size=20000)
-            except Exception as eObj:
-                self.logger.info(type(eObj))
-                self.logger.info(eObj.message)
+            self.logger.info("processing %s", objid)
+            db_obj = CatalogDBObject.from_objid(objid, **self.db_config)
+            phosim_object = PhoSimCatalogSersic2D(db_obj, obs_metadata=obs_md)
+            phosim_object.write_catalog(outfile, write_mode='a',
+                                        write_header=False,
+                                        chunk_size=20000)
