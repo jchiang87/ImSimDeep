@@ -25,7 +25,7 @@ default_logger = logging.getLogger()
 
 def apply_acceptance_cone(objs, ra, dec, radius, logger=default_logger):
     """
-    Apply an acceptance cone cut using small angle approximation.
+    Apply an acceptance cone cut using a small angle approximation.
 
     Parameters
     ----------
@@ -114,8 +114,21 @@ class LargeInstanceCatalog(object):
     """
     Class to manage down-selections of large instance catalogs.
     """
-    def __init__(self, instcat_file, num_lines=300000, temp_file_prefix='temp_',
-                 logger=default_logger):
+    def __init__(self, instcat_file, num_lines=300000,
+                 temp_file_prefix='temp', logger=default_logger):
+        """
+        Parameters
+        ----------
+        instcat_file : str
+            The name of the instance catalog file to process. If an empty
+            string, then reuse the existing temporary files, if they exist.
+        num_lines : int, optional
+            The maximum number of lines in each sub-file.
+        temp_file_prefix : str, optional
+            The string to prepend to the temporary header file.
+        logger : logging.Logger, optional
+            The logger to use.
+        """
         self._temp_file = temp_file_prefix + "_instcat.txt"
         self._sub_files = self.split_catalog(instcat_file, num_lines, logger)
         self._header_file = self.extract_header(instcat_file, temp_file_prefix,
@@ -133,7 +146,8 @@ class LargeInstanceCatalog(object):
         Parameters
         ----------
         instcat_file : str
-            phosim instance catalog file.
+            phosim instance catalog file.  If an empty string, just
+            return a list of temporary files.
         num_lines : int
             The maximum number of lines in each sub-file.
         logger : logging.Logger, optional
@@ -144,12 +158,14 @@ class LargeInstanceCatalog(object):
         list
             A sorted list of temporary files containing the object lines.
         """
-        command = "grep object %(instcat_file)s | split --lines=%(num_lines)i"\
-            % locals()
-        logger.debug("executing:\n  %s", command)
-        t0 = time.time()
-        subprocess.call(command, shell=True)
-        logger.debug("  elapsed time: %f\n", time.time() - t0)
+        if instcat_file != '':
+            command = \
+                "grep object %(instcat_file)s | split --lines=%(num_lines)i" \
+                % locals()
+            logger.debug("executing:\n  %s", command)
+            t0 = time.time()
+            subprocess.call(command, shell=True)
+            logger.debug("  elapsed time: %f\n", time.time() - t0)
         return sorted(glob.glob('x??'))
 
     @staticmethod
@@ -160,9 +176,10 @@ class LargeInstanceCatalog(object):
         Parameters
         ----------
         instcat_file : str
-            phosim instance catalog file.
+            phosim instance catalog file. If an emtpy string, return the
+            existing header file, assuming the prefix is the same.
         temp_file_prefix : str
-            The prefix to prepend to the temporary header file.
+            The string to prepend to the temporary header file.
         logger : logging.Logger, optional
             The logger to use.
 
@@ -172,11 +189,13 @@ class LargeInstanceCatalog(object):
             The name of the temporary header file.
         """
         header_file = temp_file_prefix + "_header.txt"
-        command = "grep -v object %(instcat_file)s > %(header_file)s" % locals()
-        logger.debug("executing:\n  %s", command)
-        t0 = time.time()
-        subprocess.call(command, shell=True)
-        logger.debug("  elapsed time: %f\n", time.time() - t0)
+        if instcat_file != '':
+            command = \
+                "grep -v object %(instcat_file)s > %(header_file)s" % locals()
+            logger.debug("executing:\n  %s", command)
+            t0 = time.time()
+            subprocess.call(command, shell=True)
+            logger.debug("  elapsed time: %f\n", time.time() - t0)
         return header_file
 
     def clean_up(self):
