@@ -4,6 +4,7 @@ Compute apparent magnitudes for each object in a phosim instance catalog.
 """
 from __future__ import absolute_import, print_function
 import argparse
+import pickle
 import numpy as np
 import pandas as pd
 import desc.imsim
@@ -11,15 +12,19 @@ import desc.imsimdeep
 
 parser = argparse.ArgumentParser()
 parser.add_argument('instance_catalog', type=str,
-                    help='The phosim instance catalog')
+                    help='The phosim instance catalog (text or pickled dfs)')
 parser.add_argument('outfile', type=str, help='The output filename')
 parser.add_argument('--numrows', type=int, default=None,
                     help='Number of rows to read from the instance catalog')
 args = parser.parse_args()
 
-commands, objs = desc.imsim.parsePhoSimInstanceFile(args.instance_catalog,
-                                                    numRows=args.numrows)
-
+try:
+    commands, objs = pickle.load(open(args.instance_catalog))
+    if args.numrows is not None:
+        objs = objs.iloc[:args.numrows-len(commands)]
+except IndexError:
+    commands, objs = desc.imsim.parsePhoSimInstanceFile(args.instance_catalog,
+                                                        numRows=args.numrows)
 
 band = commands['bandpass']
 columns = ('objectID', 'ra', 'dec', band)
