@@ -226,10 +226,26 @@ class LargeInstanceCatalog(object):
         tuple(dict, pandas.DataFrame)
             The phosim commands and objects DataFrame.
         """
-        ra, dec = tuple(raDecFromPixelCoords(2036, 2000, chip_name,
-                                             camera=self._camera,
-                                             obs_metadata=self._obs_metadata))
+        ra, dec = self.chip_center(chip_name)
         return self._apply_selection(ra, dec, radius, chip_name=chip_name)
+
+    def chip_center(self, chip_name):
+        """
+        Find the center of the specified chip.
+
+        Parameters
+        ----------
+        chip_name : str
+            The chip name, e.g., "R:2,2 S:1,1".
+
+        Returns
+        -------
+        tuple(float, float)
+            ICRS RA, Dec of chip center, in degrees.
+        """
+        return tuple(raDecFromPixelCoords(2036, 2000, chip_name,
+                                          camera=self._camera,
+                                          obs_metadata=self._obs_metadata))
 
     def _read_obs_metadata(self):
         "Read the obsevation metadata for the chip-based acceptance cone."
