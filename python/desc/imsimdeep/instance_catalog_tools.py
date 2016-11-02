@@ -8,6 +8,8 @@ import time
 import glob
 import logging
 import subprocess
+import gc
+import psutil
 import numpy as np
 import pandas as pd
 import lsst.obs.lsstSim as obs_lsstSim
@@ -19,9 +21,14 @@ import desc.imsim
 __all__ = ['apply_acceptance_cone', 'select_by_chip_name',
            'obs_metadata', 'LargeInstanceCatalog']
 
-logging.basicConfig(format="%(message)s", level=logging.DEBUG,
-                    stream=sys.stdout)
-default_logger = logging.getLogger()
+default_logger = desc.imsim.get_logger("DEBUG")
+
+def mem_use_message(pid=None):
+    if pid is None:
+        pid = os.getpid()
+    process = psutil.Process(pid)
+    return "  memory used: %.3f GB\n" \
+        % (process.memory_full_info().uss/1024.**3)
 
 def apply_acceptance_cone(objs, ra, dec, radius, logger=default_logger):
     """
@@ -54,7 +61,8 @@ def apply_acceptance_cone(objs, ra, dec, radius, logger=default_logger):
     del my_objs['distance']
     logger.debug('apply_acceptance_cone:\n  elapsed time: %f s',
                  time.time()- t0)
-    logger.debug('  # objects remaining: %i\n', len(my_objs))
+    logger.debug('  # objects remaining: %i', len(my_objs))
+    logger.debug(mem_use_message())
     return my_objs
 
 def select_by_chip_name(objs, chip_name, obs_metadata, camera,
@@ -87,7 +95,8 @@ def select_by_chip_name(objs, chip_name, obs_metadata, camera,
     del my_objs['chip_name']
     logger.debug('select_by_chip_name:\n  elapsed time: %f s',
                  time.time()- t0)
-    logger.debug('  # objects remaining: %i\n', len(my_objs))
+    logger.debug('  # objects remaining: %i', len(my_objs))
+    logger.debug(mem_use_message())
     return my_objs
 
 def obs_metadata(phosim_commands):
@@ -165,7 +174,8 @@ class LargeInstanceCatalog(object):
             logger.debug("executing:\n  %s", command)
             t0 = time.time()
             subprocess.call(command, shell=True)
-            logger.debug("  elapsed time: %f\n", time.time() - t0)
+            logger.debug("  elapsed time: %f", time.time() - t0)
+            logger.debug(mem_use_message())
         return sorted(glob.glob('x??'))
 
     @staticmethod
@@ -195,7 +205,8 @@ class LargeInstanceCatalog(object):
             logger.debug("executing:\n  %s", command)
             t0 = time.time()
             subprocess.call(command, shell=True)
-            logger.debug("  elapsed time: %f\n", time.time() - t0)
+            logger.debug("  elapsed time: %f", time.time() - t0)
+            logger.debug(mem_use_message())
         return header_file
 
     def clean_up(self):
@@ -285,7 +296,8 @@ class LargeInstanceCatalog(object):
             commands, objs = desc.imsim.parsePhoSimInstanceFile(temp_file)
             times.append(time.time())
             self._logger.debug("parsed instance catalog sub_file:")
-            self._logger.debug("  elapsed time: %f\n", times[-1] - times[-2])
+            self._logger.debug("  elapsed time: %f", times[-1] - times[-2])
+            self._logger.debug(mem_use_message())
             objs = apply_acceptance_cone(objs, ra, dec, radius,
                                          logger=self._logger)
             if chip_name is not None and len(objs) > 0:
@@ -293,6 +305,13 @@ class LargeInstanceCatalog(object):
                                            self._camera, logger=self._logger)
             object_dfs.append(objs)
         objs = pd.concat(tuple(object_dfs))
-        self._logger.debug('down selection applied:\n  elapsed time: %f s\n',
+
+        # Force OS to release memory.
+        # See https://github.com/pandas-dev/pandas/issues/2659
+        gc.collect()
+
+        self._logger.debug('down selection applied:\n  elapsed time: %f s',
                            time.time()- times[0])
+        self._logger.debug(mem_use_message())
+
         return commands, objs

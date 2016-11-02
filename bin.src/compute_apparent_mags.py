@@ -43,6 +43,7 @@ with open(args.instance_catalog) as inst_cat:
         df['objectID'] = pd.to_numeric(my_objs['objectID']).tolist()
         df['ra'] = pd.to_numeric(my_objs['ra']).tolist()
         df['dec'] = pd.to_numeric(my_objs['dec']).tolist()
+        df['galSimType'] = my_objs['galSimType'].tolist()
         df[band] = mags
         data_frames.append(df)
 
