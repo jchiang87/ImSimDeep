@@ -13,7 +13,7 @@ install:
   - pip install coveralls
   - git clone https://github.com/DarkEnergyScienceCollaboration/imSim.git ../imSim
   - setup lsst_sims
-  - setup -r ../imSim -j
+  - eups declare -r ../imSim imsim -t current
   - eups declare -r . imsimdeep -t current
   - setup imsimdeep
   - scons opt=3
