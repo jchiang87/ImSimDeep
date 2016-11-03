@@ -10,6 +10,7 @@ install:
   - ln -sf /home/travis/miniconda/lib/libcrypto.so.1.0.0 /home/travis/miniconda/lib/libcrypto.so.10
   - export PATH="$HOME/miniconda/bin:$PATH"
   - source eups-setups.sh
+  - pip install sncosmo --upgrade
   - pip install coveralls
   - git clone https://github.com/DarkEnergyScienceCollaboration/imSim.git ../imSim
   - setup lsst_sims
