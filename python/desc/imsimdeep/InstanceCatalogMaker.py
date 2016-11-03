@@ -8,7 +8,10 @@ import warnings
 with warnings.catch_warnings():
     warnings.filterwarnings('ignore', 'Duplicate object type id', UserWarning)
     warnings.filterwarnings('ignore', 'duplicate object identifie', UserWarning)
-    from lsst.sims.catalogs.db import CatalogDBObject
+    try:
+        from lsst.sims.catalogs.db import CatalogDBObject
+    except ImportError:
+        from lsst.sims.catalogs.generation import CatalogDBObject
     from lsst.sims.catUtils.utils import ObservationMetaDataGenerator
     from lsst.sims.catUtils.exampleCatalogDefinitions.phoSimCatalogExamples \
         import PhoSimCatalogPoint, PhoSimCatalogSersic2D

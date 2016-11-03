@@ -1,7 +1,7 @@
 """
 Tools for manipulating instance catalogs read in as pandas DataFrames.
 """
-from __future__ import print_function
+from __future__ import absolute_import, print_function, division
 import os
 import sys
 import time
