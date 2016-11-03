@@ -3,13 +3,12 @@
 
 #include "lsst/afw/coord/Coord.h"
 #include "lsst/afw/geom/Point.h"
-#include "desc/imsimdeep/InstcatTools.h"
+#include "desc/imsimdeep/instcat_utils.h"
 
 namespace desc {
 namespace imsimdeep {
 
-   double InstcatTools::
-   ang_sep(double ra0, double dec0, double ra1, double dec1) {
+   double ang_sep(double ra0, double dec0, double ra1, double dec1) {
       lsst::afw::geom::Point2D p0(ra0, dec0);
       lsst::afw::geom::Point2D p1(ra1, dec1);
       lsst::afw::coord::Coord coord0(p0);
@@ -17,9 +16,9 @@ namespace imsimdeep {
       return coord0.angularSeparation(coord1).asDegrees();
    }
 
-   void InstcatTools::sky_cone_select(const std::string & infile,
-                                      double ra, double dec, double radius,
-                                      const std::string & outfile) {
+   void sky_cone_select(const std::string & infile,
+                        double ra, double dec, double radius,
+                        const std::string & outfile) {
       std::ifstream input(infile.c_str());
       std::ofstream output(outfile.c_str());
       std::string line;
