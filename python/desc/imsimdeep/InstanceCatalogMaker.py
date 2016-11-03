@@ -11,7 +11,7 @@ with warnings.catch_warnings():
     try:
         from lsst.sims.catalogs.db import CatalogDBObject
     except ImportError:
-        from lsst.sims.catalogs.generation import CatalogDBObject
+        from lsst.sims.catalogs.generation.db import CatalogDBObject
     from lsst.sims.catUtils.utils import ObservationMetaDataGenerator
     from lsst.sims.catUtils.exampleCatalogDefinitions.phoSimCatalogExamples \
         import PhoSimCatalogPoint, PhoSimCatalogSersic2D
