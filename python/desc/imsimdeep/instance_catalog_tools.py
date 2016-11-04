@@ -17,6 +17,7 @@ from lsst.sims.coordUtils import chipNameFromRaDec, raDecFromPixelCoords
 from lsst.sims.photUtils import LSSTdefaults
 from lsst.sims.utils import ObservationMetaData
 import desc.imsim
+#from .instcat_tools import 
 
 __all__ = ['apply_acceptance_cone', 'select_by_chip_name',
            'obs_metadata', 'LargeInstanceCatalog']
