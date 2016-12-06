@@ -26,7 +26,7 @@ class ObservedSEDsTestCase(unittest.TestCase):
 
         for i in range(len(self.objects)):
             pars = self.objects.iloc[i]
-            app_mag = desc.imsimdeep.ApparentMagnitude(pars.sedName)
+            app_mag = desc.imsimdeep.ApparentMagnitude(pars.sedFilepath)
             self.assertAlmostEqual(app_mag(pars, 'u'), uband_mags[i])
 
 if __name__ == '__main__':

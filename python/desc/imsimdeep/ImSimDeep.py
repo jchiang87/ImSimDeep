@@ -83,8 +83,8 @@ class ApparentMagnitude(object):
             a_int, b_int = spectrum.setupCCMab()
             spectrum.addCCMDust(a_int, b_int, A_v=iA_v, R_v=iR_v)
 
-        if pars.redShift > 0:
-            spectrum.redshiftSED(pars.redShift, dimming=True)
+        if pars.redshift > 0:
+            spectrum.redshiftSED(pars.redshift, dimming=True)
 
         # Apply Galactic extinction.
         if gA_v != 0 or gR_v != 0:
