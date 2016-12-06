@@ -7,8 +7,8 @@ astrometry.net index files.
 from __future__ import absolute_import
 import argparse
 import numpy
-from lsst.sims.catalogs.measures.instance import InstanceCatalog
-from lsst.sims.catalogs.generation.db import CatalogDBObject
+from lsst.sims.catalogs.definitions import InstanceCatalog
+from lsst.sims.catalogs.db import CatalogDBObject
 from lsst.sims.catUtils.utils import ObservationMetaDataGenerator
 from lsst.sims.catUtils.mixins import AstrometryStars, PhotometryStars
 
