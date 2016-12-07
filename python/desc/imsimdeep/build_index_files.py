@@ -7,33 +7,66 @@ import os
 import shutil
 import glob
 import subprocess
+import numpy
+try:
+    from lsst.sims.catalogs.definitions import InstanceCatalog
+    from lsst.sims.catalogs.db import CatalogDBObject
+except ImportError:
+    # For sims code prior to 2.3.0 (e.g., the v12_0 tag of the Stack).
+    from lsst.sims.catalogs.measures.instance import InstanceCatalog
+    from lsst.sims.catalogs.generation.db import CatalogDBObject
+from lsst.sims.catUtils.utils import ObservationMetaDataGenerator
+from lsst.sims.catUtils.mixins import AstrometryStars, PhotometryStars
 
-__all__ = ['add_starnotgal', 'refcat_to_astrometry_net_input',
-           'build_index_files']
+__all__ = ['make_refcat', 'refcat_to_astrometry_net_input', 'build_index_files']
 
-def add_starnotgal(infile, outfile):
+catsim_uw = dict(host='fatboy.phys.washington.edu',
+                 port=1433,
+                 database='LSSTCATSIM',
+                 driver='mssql+pymssql')
+
+class SimulationReference(InstanceCatalog, AstrometryStars, PhotometryStars):
+    "Reference stars for simulation astrometry."
+    catalog_type = 'simulation_ref_star'
+    column_outputs = ['uniqueId', 'raJ2000', 'decJ2000', 'lsst_u', 'lsst_g',
+                      'lsst_r', 'lsst_i', 'lsst_z', 'lsst_y', 'isvariable',
+                      'starnotgal']
+    default_columns = [('isresolved', 0, int), ('isvariable', 0, int),
+                       ('starnotgal', 1, int)]
+    default_formats = {'S': '%s', 'f': '%.8f', 'i': '%i'}
+    transformations = {'raJ2000': numpy.degrees, 'decJ2000': numpy.degrees}
+
+def make_refcat(opsim_db, obsHistID, boundLength, outfile,
+                catsim_db_info=catsim_uw, chunk_size=20000):
     """
-    Add the starnotgal column to an input reference catalog containing
-    only stars.
+    Create a reference catalog of stars to use for astrometry from the
+    CatSim db tables.
 
     Parameters
     ----------
-    infile : str
-        Input reference catalog.
+    opsim_db : str
+        OpSim database sqlite file
+    obsHistID : int
+        Visit number to provide the center of the extraction region.
+    boundLength : float
+        Radius of the extraction region in units of degrees.
     outfile : str
-        Output filename.
+        Filename for the reference catalog output file.
+    catsim_db_info : dict, optional
+        Connection information (host, port, database, driver) for the CatSim
+        database.  Default: connection info for the UW fatboy server.
+    chunk_size : int
+        The memory chunk size to pass to InstanceCatalog.write_catalog
     """
-    with open(infile) as input_:
-        lines = input_.readlines()
-    with open(outfile, 'w') as output:
-        output.write(lines[0].strip() + ', starnotgal\n')
-        for line in lines[1:]:
-            tokens = line.strip().split(', ')
-            tokens.append('1')
-            output.write(', '.join(tokens) + '\n')
+    generator = ObservationMetaDataGenerator(database=opsim_db, driver='sqlite')
+    obs_metadata = generator.getObservationMetaData(obsHistID=obsHistID,
+                                                    boundLength=boundLength)[0]
+    stars = CatalogDBObject.from_objid('allstars', **catsim_db_info)
+    ref_stars = SimulationReference(stars, obs_metadata=obs_metadata)
+    ref_stars.write_catalog(outfile, write_mode='w', write_header=True,
+                            chunk_size=chunk_size)
 
-def refcat_to_astrometry_net_input(refcat_file, outfile=None,
-                                   tempfile='temp.txt'):
+def refcat_to_astrometry_net_input(refcat_file, outfile=None):
     """
     Convert an ascii reference catalog to a FITS file in the form of a
     binary table.
@@ -45,9 +78,6 @@ def refcat_to_astrometry_net_input(refcat_file, outfile=None,
     outfile : str, optional
         Output file name for the FITS binary table data.
         Default: the refcat_file name but with a '.fits' extension.
-    tempfile : str, optional
-        Temporary ASCII file to contain the reference star data with
-        the "starnotgal" column added.
 
     Returns
     -------
@@ -56,13 +86,9 @@ def refcat_to_astrometry_net_input(refcat_file, outfile=None,
     if outfile is None:
         outfile = '.'.join(refcat_file.split('.')[:-1]) + '.fits'
 
-    add_starnotgal(refcat_file, tempfile)
-
-    command = "text2fits.py -H 'id, ra, dec, u, g, r, i, z, y, isvariable, starnotgal' -s ', ' %s %s -f 'kddddddddjj'" % (refcat_txt, outfile)
+    command = "text2fits.py -H 'id, ra, dec, u, g, r, i, z, y, isvariable, starnotgal' -s ', ' %s %s -f 'kddddddddjj'" % (refcat_file, outfile)
     print(command)
     subprocess.check_call(command, shell=True)
-
-    os.remove(tempfile)
 
     return outfile
 
@@ -103,3 +129,22 @@ def build_index_files(ref_file, index_id, max_scale_number=4, output_dir='.'):
             shutil.move(item, os.path.join(output_dir, item))
         for item in glob.glob('build-??.log'):
             shutil.move(item, os.path.join(output_dir, item))
+    write_andConfig_py(index_files, output_dir)
+
+def write_andConfig_py(index_files, output_dir):
+    """
+    Write the astrometry.net configuration file.
+
+    Parameters
+    ----------
+    index_files : sequence
+        The index filenames.
+    """
+    with open(os.path.join(output_dir, 'andConfig.py'), 'w') as output:
+        output.write("""root.starGalaxyColumn = "starnotgal"
+root.variableColumn = "isvariable"
+filters = ('u', 'g', 'r', 'i', 'z', 'y')
+root.magColumnMap = {'u':'u', 'g':'g', 'r':'r', 'i':'i', 'z':'z', 'y':'y'}
+root.indexFiles = ['""")
+        output.write("', '".join(index_files))
+        output.write("']\n")
