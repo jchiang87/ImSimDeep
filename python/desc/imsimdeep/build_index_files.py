@@ -37,7 +37,7 @@ class SimulationReference(InstanceCatalog, AstrometryStars, PhotometryStars):
     transformations = {'raJ2000': numpy.degrees, 'decJ2000': numpy.degrees}
 
 def make_refcat(opsim_db, obsHistID, boundLength, outfile,
-                catsim_db_info=catsim_uw, chunk_size=20000):
+                catsim_db_info=None, chunk_size=20000):
     """
     Create a reference catalog of stars to use for astrometry from the
     CatSim db tables.
@@ -55,9 +55,11 @@ def make_refcat(opsim_db, obsHistID, boundLength, outfile,
     catsim_db_info : dict, optional
         Connection information (host, port, database, driver) for the CatSim
         database.  Default: connection info for the UW fatboy server.
-    chunk_size : int
+    chunk_size : int, optional
         The memory chunk size to pass to InstanceCatalog.write_catalog
     """
+    if catsim_db_info is None:
+        catsim_db_info = catsim_uw
     generator = ObservationMetaDataGenerator(database=opsim_db, driver='sqlite')
     obs_metadata = generator.getObservationMetaData(obsHistID=obsHistID,
                                                     boundLength=boundLength)[0]
@@ -129,9 +131,9 @@ def build_index_files(ref_file, index_id, max_scale_number=4, output_dir='.'):
             shutil.move(item, os.path.join(output_dir, item))
         for item in glob.glob('build-??.log'):
             shutil.move(item, os.path.join(output_dir, item))
-    write_andConfig_py(index_files, output_dir)
+    write_and_config_py(index_files, output_dir)
 
-def write_andConfig_py(index_files, output_dir):
+def write_and_config_py(index_files, output_dir):
     """
     Write the astrometry.net configuration file.
 
