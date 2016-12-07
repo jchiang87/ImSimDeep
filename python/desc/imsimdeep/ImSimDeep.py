@@ -26,8 +26,10 @@ class ApparentMagnitude(object):
         spectrum.
     sed_unnormed : lsst.photUtils.Sed object
         The un-normalized SED.
+    max_mag : float
+        Sentinal value for underflows of Sed.calcMag
     """
-    def __init__(self, sed_name):
+    def __init__(self, sed_name, max_mag=1000.):
         """
         Set up the LSST bandpasses and un-normalized SED.
         """
@@ -45,6 +47,7 @@ class ApparentMagnitude(object):
         sed_dir = lsstUtils.getPackageDir('sims_sed_library')
         self.sed_unnormed = photUtils.Sed()
         self.sed_unnormed.readSED_flambda(os.path.join(sed_dir, sed_name))
+        self.max_mag = max_mag
 
     def _sed_copy(self):
         """
@@ -91,4 +94,13 @@ class ApparentMagnitude(object):
             a_int, b_int = spectrum.setupCCMab()
             spectrum.addCCMDust(a_int, b_int, A_v=gA_v, R_v=gR_v)
 
-        return spectrum.calcMag(self.bps[band])
+
+        try:
+            mag = spectrum.calcMag(self.bps[band])
+        except Exception as eObj:
+            if eObj.message.starswith("This SED has no flux"):
+                mag = self.max_mag
+            else:
+                raise eObj
+
+        return mag

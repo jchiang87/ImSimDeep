@@ -9,25 +9,35 @@ import shutil
 import glob
 import subprocess
 
-def refcat_to_astrometry_net_input(instcat, ref_file='ref.txt'):
+def add_starnotgal(infile, outfile):
+    with open(infile) as input_:
+        lines = input_.readlines()
+    with open(outfile, 'w') as output:
+        output.write(lines[0].strip() + ', starnotgal\n')
+        for line in lines[1:]:
+            tokens = line.strip().split(', ')
+            tokens.append('1')
+            output.write(', '.join(tokens) + '\n')
+
+def refcat_to_astrometry_net_input(refcat_file, outfile=None,
+                                   tempfile='temp.txt'):
     """
     Convert an ascii reference catalog to a FITS file in the form of a
-    binary table, retaining just the objects with a "starSED".
+    binary table.
 
     @return The file name of the FITS file.
     """
-    output = open(ref_file, 'w')
-    output.write('#id RA DEC r isvariable starnotgal\n')
-    for line in open(instcat):
-        tokens = line.split()
-        if tokens[0] != 'object' or not tokens[5].startswith('starSED'):
-            continue
-        output.write('%s %s %s %s 0 1\n' % tuple(tokens[1:5]))
-    output.close()
-    outfile = ref_file.replace('.txt', '.fits')
-    command = "text2fits.py %(ref_file)s %(outfile)s -f 'kdddjj'" % locals()
-    subprocess.call(command, shell=True)
-    os.remove(ref_file)
+    if outfile is None:
+        outfile = '.'.join(refcat_file.split('.')[:-1]) + '.fits'
+
+    add_starnotgal(refcat_file, tempfile)
+
+    command = "text2fits.py -H 'id, ra, dec, u, g, r, i, z, y, isvariable, starnotgal' -s ', ' %s %s -f 'kddddddddjj'" % (refcat_txt, outfile)
+    print(command)
+    subprocess.check_call(command, shell=True)
+
+    os.remove(tempfile)
+
     return outfile
 
 def build_index_files(ref_file, index_id, max_scale_number=4, output_dir='.'):
