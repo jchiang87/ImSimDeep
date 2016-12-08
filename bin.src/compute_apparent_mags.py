@@ -26,23 +26,25 @@ except IndexError:
     commands, objs = desc.imsim.parsePhoSimInstanceFile(args.instance_catalog,
                                                         numRows=args.numrows)
 
-band = commands['bandpass']
-columns = ('objectID', 'ra', 'dec', band)
+objs = desc.imsim.validate_phosim_object_list(objs).accepted
 
-sed_names = [x[0] for x in objs.groupby('sedName').sedName.unique()]
+band = commands['bandpass']
+columns = ('uniqueId', 'raICRS', 'decICRS', band)
+
+sed_names = [x[0] for x in objs.groupby('sedFilepath').sedFilepath.unique()]
 
 data_frames = []
 with open(args.instance_catalog) as inst_cat:
     for sed_name in sed_names:
         app_mag = desc.imsimdeep.ApparentMagnitude(sed_name)
-        my_objs = objs.query("sedName=='%s'" % sed_name)
+        my_objs = objs.query("sedFilepath=='%s'" % sed_name)
         nrows = len(my_objs)
         mags = [app_mag(my_objs.iloc[i], band) for i in range(nrows)]
         df = pd.DataFrame(np.zeros((len(my_objs), len(columns))),
                           columns=columns)
-        df['objectID'] = pd.to_numeric(my_objs['objectID']).tolist()
-        df['ra'] = pd.to_numeric(my_objs['ra']).tolist()
-        df['dec'] = pd.to_numeric(my_objs['dec']).tolist()
+        df['uniqueId'] = pd.to_numeric(my_objs['uniqueId']).tolist()
+        df['raICRS'] = pd.to_numeric(my_objs['raICRS']).tolist()
+        df['decICRS'] = pd.to_numeric(my_objs['decICRS']).tolist()
         df['galSimType'] = my_objs['galSimType'].tolist()
         df[band] = mags
         data_frames.append(df)

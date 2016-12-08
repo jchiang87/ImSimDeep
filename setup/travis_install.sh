@@ -11,7 +11,7 @@ if [[ -z $1 ]]; then
 	exit -1
 fi
 
-MINICONDA_VERSION=${MINICONDA_VERSION:-3.19.0} # you can use "latest" if you don't care
+MINICONDA_VERSION=${MINICONDA_VERSION:-3.19.0}			# you can use "latest" if you don't care
 CHANNEL=${CHANNEL:-"http://conda.lsst.codes/sims/2.3.1"}
 
 ########################################################################################################
