@@ -26,8 +26,8 @@ cache:
 
 script:
   - nosetests --with-coverage --cover-package=desc.imsimdeep
-  - pylint -r n --py3k `find . -name \*.py -print | grep -v instcat_tools.py`
+  - pylint -r n --py3k `find . -name \*.py -print | grep -v instcat_utils.py`
 
 after_success:
+  - pylint -r n --rcfile=.pylintrc `find . -name \*.py -print | grep -v instcat_utils.py`
   - coveralls
-#  - pylint -r n --rcfile=.pylintrc `find . -name \*.py -print`
