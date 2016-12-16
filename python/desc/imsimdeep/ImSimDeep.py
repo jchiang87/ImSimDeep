@@ -98,7 +98,7 @@ class ApparentMagnitude(object):
         try:
             mag = spectrum.calcMag(self.bps[band])
         except Exception as eObj:
-            if eObj.message.startswith("This SED has no flux"):
+            if str(eObj).startswith("This SED has no flux"):
                 mag = self.max_mag
             else:
                 raise eObj
