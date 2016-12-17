@@ -13,11 +13,12 @@ import os
 import numpy as np
 import astropy.io.fits as fits
 import pandas as pd
+import matplotlib.pyplot as plt
 import sklearn.neighbors
 import lsst.daf.persistence as dp
 import desc.imsim
 
-__all__ = ['instcat_comparison']
+__all__ = ['instcat_comparison', 'plot_instcat_comparison']
 
 logger = desc.imsim.get_logger('INFO')
 
@@ -118,40 +119,70 @@ def instcat_comparison(app_mag_file, repo, visit, raft, sensor,
                            galSimType=instcat['galSimType'].values[index]))
     return df, visit_name
 
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    plt.ion()
-
-    repo = 'output'
-    visit = 230
-    raft = '2,2'
-    sensor = '1,1'
-    app_mag_file = 'instcats/%(visit)i/app_mags_%(visit)i.pkl' % locals()
-
-    df, visit_name = instcat_comparison(app_mag_file, repo, visit, raft, sensor)
+def plot_instcat_comparison(app_mag_file, repo, visit, raft, sensor,
+                            fontsize='x-small', figsize=(8, 8)):
+    plt.rcParams['xtick.labelsize'] = fontsize
+    plt.rcParams['ytick.labelsize'] = fontsize
+    plt.rcParams['figure.figsize'] = figsize
+    ccd = 'R%s S%s' % (raft, sensor)
+    df, visit_name = desc.imsimdeep.instcat_comparison(app_mag_file, repo,
+                                                       visit, raft, sensor)
     pointSource = df.query('galSimType=="pointSource"')
+    sersic = df.query('galSimType=="sersic"')
+    figure = plt.figure()
 
-    plt.figure()
-    plt.hist(pointSource['offset'], bins=50, histtype='step')
-    plt.xlabel('offset from true position (arcsec)')
-    plt.ylabel('entries / bin')
-    plt.title(visit_name)
-
-    plt.figure()
-    delta_mag = pointSource['magnitude'] - pointSource['magnitude_true']
-    plt.errorbar(pointSource['magnitude_true'], delta_mag,
-                 fmt='.')
-    plt.xlabel('true magnitude')
-    plt.ylabel('measured - true magnitude')
-    plt.title(visit_name)
-
-    plt.figure()
+    # Plot true and measure positions for point sources only.
+    figure.add_subplot(2, 2, 1)
     plt.errorbar(pointSource['coord_ra'], pointSource['coord_dec'],
                  fmt='.', label='measured position')
     plt.scatter(pointSource['coord_ra_true'], pointSource['coord_dec_true'],
-                s=60, label='true position', facecolors='none',
-                edgecolors='r')
-    plt.xlabel('RA (deg)')
-    plt.ylabel('Dec (deg)')
-    plt.legend()
-    plt.title(visit_name)
+                s=60, label='true position', facecolors='none', edgecolors='r')
+    field = plt.axis()
+    plt.xlabel('RA (deg)', fontsize=fontsize)
+    plt.ylabel('Dec (deg)', fontsize=fontsize)
+    plt.legend(fontsize=fontsize)
+    plt.title('%(visit_name)s, %(ccd)s' % locals(), fontsize=fontsize)
+
+    # Plot (measured-true mag) vs true mag for point sources only.
+    figure.add_subplot(2, 2, 2)
+    plt.errorbar(pointSource['magnitude_true'],
+                 pointSource['magnitude'] - pointSource['magnitude_true'],
+                 fmt='.', label='pointSource')
+    axis_range = plt.axis()
+    plt.plot(axis_range[:2], [0, 0], 'k:')
+    plt.xlabel('true magnitude', fontsize=fontsize)
+    plt.ylabel('\nmeasured - true magnitude', fontsize=fontsize)
+    plt.title('%(visit_name)s, %(ccd)s' % locals(), fontsize=fontsize)
+
+    # Histogram offsets for point sources and galaxies.
+    figure.add_subplot(2, 2, 3)
+    plt.hist(pointSource['offset'], bins=50, histtype='step',
+             label='pointSource')
+    plt.hist(sersic['offset'], bins=50, histtype='step', label='sersic')
+    plt.yscale('log')
+    xmin, xmax, ymin, ymax = plt.axis()
+    plt.axis([xmin, xmax, 0.5, ymax])
+    plt.xlabel('offset from nearest instcat source (arcsec)', fontsize=fontsize)
+    plt.ylabel('\nentries / bin', fontsize=fontsize)
+    plt.title('%(visit_name)s, %(ccd)s' % locals(), fontsize=fontsize)
+    plt.legend(loc=1, fontsize=fontsize)
+
+    # Quiver plot of positional offsets: measured - true positions
+    figure.add_subplot(2, 2, 4)
+    X, Y = pointSource['coord_ra_true'], pointSource['coord_dec_true']
+    Xp, Yp = pointSource['coord_ra'], pointSource['coord_dec']
+    xhat = Xp - X
+    yhat = Yp - Y
+    # Set arrow lengths in degrees.
+    length = pointSource['offset'].values/3600./np.sqrt(xhat**2 + yhat**2)
+    U = length*xhat
+    V = length*yhat
+    q = plt.quiver(X, Y, U, V)
+    qk = plt.quiverkey(q, 0.9, 0.9, 1./3600., 'offset (1")', labelpos='N',
+                       fontproperties={'size': fontsize})
+    plt.axis(field)
+    plt.xlabel('RA (deg)', fontsize=fontsize)
+    plt.ylabel('Dec (deg)', fontsize=fontsize)
+    plt.title('%(visit_name)s, %(ccd)s' % locals(), fontsize=fontsize)
+
+    plt.tight_layout()
