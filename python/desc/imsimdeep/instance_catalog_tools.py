@@ -84,8 +84,8 @@ def chip_center_coords(chip_name, obs_md, camera):
         The camera instance from lsst.obs.lsstSim.LsstSimMapper().
     """
     corner_pixels = coordUtils.getCornerPixels(chip_name, camera)
-    xmid = (corner_pixels[-1][0] - corner_pixels[0][0])/2
-    ymid = (corner_pixels[-1][1] - corner_pixels[0][1])/2
+    xmid = (corner_pixels[-1][0] - corner_pixels[0][0] + 1)/2
+    ymid = (corner_pixels[-1][1] - corner_pixels[0][1] + 1)/2
     return tuple(coordUtils.raDecFromPixelCoords(ymid, xmid, chip_name,
                                                  camera=camera,
                                                  obs_metadata=obs_md))

@@ -70,14 +70,14 @@ class InstcatToolsTestCase(unittest.TestCase):
         self.assertEquals(commands['seed'], 161899)
 
     def test_chip_center_coords(self):
-        "Test the function to return the coordinates of the chip center."
+        "Test the function to return the coordinates of a chip center."
         chip_name = 'R:2,2 S:1,1'
         commands = desc.imsimdeep.instcat_commands(self.instcat_file)
         obs_md = desc.imsimdeep.obs_metadata(commands)
         camera = obs_lsstSim.LsstSimMapper().camera
         ra, dec = desc.imsimdeep.chip_center_coords(chip_name, obs_md, camera)
-        self.assertAlmostEqual(ra, 31.11594803779326)
-        self.assertAlmostEqual(dec, -10.095546164575817)
+        self.assertAlmostEqual(ra, 31.115931707503101)
+        self.assertAlmostEqual(dec, -10.095510308565457)
 
 if __name__ == '__main__':
     unittest.main()
