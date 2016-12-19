@@ -120,15 +120,15 @@ def instcat_comparison(app_mag_file, repo, visit, raft, sensor,
     return df, visit_name
 
 def plot_instcat_comparison(app_mag_file, repo, visit, raft, sensor,
-                            fontsize='x-small', figsize=(8, 8)):
+                            fontsize='x-small', figsize=(8, 8), max_offset=1):
     plt.rcParams['xtick.labelsize'] = fontsize
     plt.rcParams['ytick.labelsize'] = fontsize
     plt.rcParams['figure.figsize'] = figsize
     ccd = 'R%s S%s' % (raft, sensor)
-    df, visit_name = desc.imsimdeep.instcat_comparison(app_mag_file, repo,
-                                                       visit, raft, sensor)
-    pointSource = df.query('galSimType=="pointSource"')
-    sersic = df.query('galSimType=="sersic"')
+    df, visit_name = instcat_comparison(app_mag_file, repo, visit, raft, sensor)
+    pointSource = \
+        df.query('galSimType=="pointSource" and offset<%f' % max_offset)
+    sersic = df.query('galSimType=="sersic" and offset<%f' % max_offset)
     figure = plt.figure()
 
     # Plot true and measure positions for point sources only.
@@ -186,3 +186,4 @@ def plot_instcat_comparison(app_mag_file, repo, visit, raft, sensor,
     plt.title('%(visit_name)s, %(ccd)s' % locals(), fontsize=fontsize)
 
     plt.tight_layout()
+    return df
