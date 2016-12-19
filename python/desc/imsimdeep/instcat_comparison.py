@@ -18,7 +18,8 @@ import sklearn.neighbors
 import lsst.daf.persistence as dp
 import desc.imsim
 
-__all__ = ['instcat_comparison', 'plot_instcat_comparison']
+__all__ = ['instcat_comparison', 'plot_instcat_comparison',
+           'plot_instcat_offsets']
 
 logger = desc.imsim.get_logger('INFO')
 
@@ -169,21 +170,31 @@ def plot_instcat_comparison(app_mag_file, repo, visit, raft, sensor,
 
     # Quiver plot of positional offsets: measured - true positions
     figure.add_subplot(2, 2, 4)
-    X, Y = pointSource['coord_ra_true'], pointSource['coord_dec_true']
-    Xp, Yp = pointSource['coord_ra'], pointSource['coord_dec']
-    xhat = Xp - X
-    yhat = Yp - Y
-    # Set arrow lengths in degrees.
-    length = pointSource['offset'].values/3600./np.sqrt(xhat**2 + yhat**2)
-    U = length*xhat
-    V = length*yhat
-    q = plt.quiver(X, Y, U, V)
-    qk = plt.quiverkey(q, 0.9, 0.9, 1./3600., 'offset (1")', labelpos='N',
-                       fontproperties={'size': fontsize})
-    plt.axis(field)
-    plt.xlabel('RA (deg)', fontsize=fontsize)
-    plt.ylabel('Dec (deg)', fontsize=fontsize)
-    plt.title('%(visit_name)s, %(ccd)s' % locals(), fontsize=fontsize)
+    plot_instcat_offsets(pointSource, visit_name, ccd, fontsize=fontsize,
+                         field=field)
 
     plt.tight_layout()
     return df
+
+def plot_instcat_offsets(df, visit_name, component, fontsize='x-small',
+                         field=None, arrow_scale=150.):
+    X, Y = df['coord_ra_true'], df['coord_dec_true']
+    Xp, Yp = df['coord_ra'], df['coord_dec']
+    xhat = Xp - X
+    yhat = Yp - Y
+    # Set arrow lengths in degrees and apply arrow_scale magnification
+    # normalized relative to the nominal x-axis range.
+    scale_factor = arrow_scale/3600.*(max(X) - min(X))
+    length = scale_factor*df['offset'].values/np.sqrt(xhat**2 + yhat**2)
+    U = length*xhat
+    V = length*yhat
+    q = plt.quiver(X, Y, U, V, units='xy', angles='xy', scale_units='xy',
+                   scale=1)
+    qk = plt.quiverkey(q, 0.9, 0.9, scale_factor, 'offset (1")',
+                       labelpos='N', fontproperties={'size': fontsize})
+    if field is not None:
+        plt.axis(field)
+    plt.xlabel('RA (deg)', fontsize=fontsize)
+    plt.ylabel('Dec (deg)', fontsize=fontsize)
+    plt.title('%(visit_name)s, %(component)s' % locals(), fontsize=fontsize)
+    return length
