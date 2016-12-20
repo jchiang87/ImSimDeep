@@ -314,7 +314,7 @@ def plot_instcat_offsets(df, visit_name, component, fontsize='x-small',
     yhat = Yp - Y
     # Set arrow lengths in degrees and apply arrow_scale magnification
     # normalized relative to the nominal x-axis range.
-    scale_factor = arrow_scale/3600.*(max(X) - min(X))
+    scale_factor = arrow_scale/3600.
     length = scale_factor*df['offset'].values/np.sqrt(xhat**2 + yhat**2)
     q = plt.quiver(X, Y, length*xhat, length*yhat, units='xy', angles='xy',
                    scale_units='xy', scale=1)
