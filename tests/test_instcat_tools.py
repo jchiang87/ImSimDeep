@@ -6,13 +6,20 @@ import os
 from collections import namedtuple
 import unittest
 import numpy as np
+import lsst.obs.lsstSim as obs_lsstSim
+import desc.imsim
 import desc.imsimdeep
+
+# Silence the annoying INFO from the Stack when creating a mapper
+# without a registry.sqlite3 file.
+desc.imsim.get_logger('ERROR')
 
 class InstcatToolsTestCase(unittest.TestCase):
     "TestCase class for instcat_tools."
 
     def setUp(self):
-        pass
+        self.instcat_file = os.path.join(os.environ['IMSIMDEEP_DIR'], 'tests',
+                                         'tiny_instcat.txt')
 
     def tearDown(self):
         pass
@@ -41,17 +48,36 @@ class InstcatToolsTestCase(unittest.TestCase):
 
     def test_sky_cone_select(self):
         "Test the sky cone selection code."
-        infile = os.path.join(os.environ['IMSIMDEEP_DIR'], 'tests',
-                              'tiny_instcat.txt')
         outfile = 'sky_cone_select_output.txt'
         ra = 53.0449009
         dec = -27.3220807
         radius = 0.1
-        desc.imsimdeep.sky_cone_select(infile, ra, dec, radius, outfile)
+        desc.imsimdeep.sky_cone_select(self.instcat_file, ra, dec, radius,
+                                       outfile)
         objs = self._read_instcat(outfile)
         self.assertEqual(len(objs), 1)
         self.assertEqual(objs[0].objectID, 992886536196)
         os.remove(outfile)
+
+    def test_instcat_commands(self):
+        "Test the command parser."
+        commands = desc.imsimdeep.instcat_commands(self.instcat_file)
+        self.assertEqual(len(commands), 20)
+        self.assertAlmostEqual(commands['rightascension'], 31.1133844)
+        self.assertAlmostEqual(commands['declination'], -10.0970060)
+        self.assertEqual(commands['filter'], 2)
+        self.assertEqual(commands['bandpass'], 'r')
+        self.assertEquals(commands['seed'], 161899)
+
+    def test_chip_center_coords(self):
+        "Test the function to return the coordinates of a chip center."
+        chip_name = 'R:2,2 S:1,1'
+        commands = desc.imsimdeep.instcat_commands(self.instcat_file)
+        obs_md = desc.imsimdeep.obs_metadata(commands)
+        camera = obs_lsstSim.LsstSimMapper().camera
+        ra, dec = desc.imsimdeep.chip_center_coords(chip_name, obs_md, camera)
+        self.assertAlmostEqual(ra, 31.115931707503101)
+        self.assertAlmostEqual(dec, -10.095510308565457)
 
 if __name__ == '__main__':
     unittest.main()
