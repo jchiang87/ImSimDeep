@@ -49,54 +49,14 @@ class Level2Catalog(object):
         self.fluxerr = np.array(fluxerr)
 
     @staticmethod
-    def read_icSrc_file(calexp_file, icSrc_file, flux_col='base_PsfFlux_flux',
-                        pixel_coord_prefix='base_SdssCentroid'):
-        """
-        Read id, coordinate, and flux information from icSrc and calexp
-        files.
-
-        Parameters
-        ----------
-        calexp_file : str
-            FITS file with the calibrated exposure frame.
-        icSrc_file : str
-            FITS file with the catalog information.
-        flux_col : str, optional
-            Flux column to use.  Default: 'base_PsfFlux_flux'
-        pixel_coord_prefix : str, optional
-            Prefix for the pixel coordinate columns to use.
-            Default: 'base_SdssCentroid'
-
-        Returns
-        -------
-        Level2Catalog
-            A Level2Catalog object with objectId, coord_ra, coord_dec, flux,
-            fluxerr info.
-
-        """
-        wcs = afwImage.ExposureF(calexp_file).getWcs()
-        catalog = fits.open(icSrc_file)
-        coord_ra, coord_dec = [], []
-        for x, y in zip(catalog[1].data[pixel_coord_prefix + '_x'],
-                        catalog[1].data[pixel_coord_prefix + '_y']):
-            coords = wcs.pixelToSky(x, y).toIcrs()
-            coord_ra.append(coords.getLongitude().asRadians())
-            coord_dec.append(coords.getLatitude().asRadians())
-        return Level2Catalog(catalog[1].data['id'], coord_ra, coord_dec,
-                             catalog[1].data[flux_col],
-                             catalog[1].data[flux_col + 'Sigma'])
-
-    @staticmethod
-    def read_forced_src_file(forced_src_file, flux_col='base_PsfFlux_flux'):
+    def read_src_file(src_file, flux_col='base_PsfFlux_flux'):
         """
         Read objectId, coordinate, and flux information from forced source
         files.
 
         Parameters
         ----------
-        calexp_file : str
-            FITS file with the calibrated exposure frame.
-        icSrc_file : str
+        src_file : str
             FITS file with the catalog information.
         flux_col : str, optional
             Flux column to use.  Default: 'base_PsfFlux_flux'
@@ -107,12 +67,16 @@ class Level2Catalog(object):
             A Level2Catalog object with objectId, coord_ra, coord_dec, flux,
             fluxerr info.
         """
-        forced = fits.open(forced_src_file)
-        return Level2Catalog(forced[1].data['objectId'],
-                             forced[1].data['coord_ra'],
-                             forced[1].data['coord_dec'],
-                             forced[1].data[flux_col],
-                             forced[1].data[flux_col + 'Sigma'])
+        src = fits.open(src_file)
+        if 'objectId' in [x.name for x in src[1].data.columns]:
+            id_colname = 'objectId'
+        else:
+            id_colname = 'id'
+        return Level2Catalog(src[1].data[id_colname],
+                             src[1].data['coord_ra'],
+                             src[1].data['coord_dec'],
+                             src[1].data[flux_col],
+                             src[1].data[flux_col + 'Sigma'])
 
 def instcat_comparison(app_mag_file, repo, visit, raft, sensor,
                        catalog_type='forced', flux_col='base_PsfFlux_flux',
@@ -164,25 +128,20 @@ def instcat_comparison(app_mag_file, repo, visit, raft, sensor,
     raft_name = 'R%s' % raft[::2]
     sensor_file = 'S%s.fits' % sensor[::2]
 
-    if catalog_type == 'forced':
-        # The data butler doesn't work properly for forced_src catalogs
-        # (It complains with "OperationalError: no such column: tract"
-        # when executing butler.get('forced_src').), so access the data
-        # using astropy.io.fits.
-        forced_src_file = os.path.join(repo, 'forced', tract, visit_name,
-                                       raft_name, sensor_file)
-        catalog = Level2Catalog.read_forced_src_file(forced_src_file,
-                                                     flux_col=flux_col)
-    elif catalog_type == 'icSrc':
-        # Easier (and much quicker) to avoid the butler here too.
-        calexp_file = os.path.join(repo, 'calexp', visit_name, raft_name,
-                                   sensor_file)
-        icSrc_file = os.path.join(repo, 'icSrc', visit_name, raft_name,
-                                  sensor_file)
-        catalog = Level2Catalog.read_icSrc_file(calexp_file, icSrc_file,
-                                                flux_col=flux_col)
-    else:
+    if catalog_type not in ('forced', 'src'):
         raise RuntimeError('Unknown catalog_type: %s', catalog_type)
+
+    # The data butler doesn't work properly for forced_src catalogs
+    # (It complains with "OperationalError: no such column: tract"
+    # when executing butler.get('forced_src').), so access the data
+    # using astropy.io.fits.
+    if catalog_type == 'forced':
+        src_file = os.path.join(repo, catalog_type, tract, visit_name,
+                                raft_name, sensor_file)
+    else:
+        src_file = os.path.join(repo, catalog_type, visit_name,
+                                raft_name, sensor_file)
+    catalog = Level2Catalog.read_src_file(src_file, flux_col=flux_col)
 
     instcat = pd.read_pickle(app_mag_file)
 
